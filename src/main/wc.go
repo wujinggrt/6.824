@@ -19,7 +19,7 @@ import (
 func mapF(filename string, contents string) []mapreduce.KeyValue {
 	// Your code here (Part II).
 	words := strings.FieldsFunc(contents, func (r rune) bool {
-		return !unicode.IsLetter(r) && !unicode.IsDigit(r)
+		return !unicode.IsLetter(r)
 	})
 	var keyValues []mapreduce.KeyValue
 	for _, kv := range words {
