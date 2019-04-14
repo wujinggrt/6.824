@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 	"fmt"
-	"../mapreduce"
+	"mapreduce"
 	"unicode"
 	"strings"
 	"strconv"
@@ -43,12 +43,7 @@ func reduceF(key string, values []string) string {
 	sort.Strings(fileNames)
 	numFiles := len(fileNames)
 	res := strconv.Itoa(numFiles) + " "
-	for i, name := range fileNames {
-		res += name
-		if i < numFiles - 1 {
-			res += ","
-		}
-	}
+	res += strings.Join(fileNames, ",")
 	return res
 }
 
