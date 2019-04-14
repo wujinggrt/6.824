@@ -39,24 +39,27 @@ func schedule(jobName string, mapFiles []string, nReduce int, phase jobPhase, re
 		wg.Add(1)
 		go func (taskNum int) {
 			defer wg.Done()
-			worker := <- registerChan 
-			taskArgs := DoTaskArgs {
-				jobName,
-				mapFiles[taskNum],
-				phase,
-				taskNum,
-				n_other,
-			}
-			// 加上这句也没啥，可以看出，reduce 阶段文件名是没用的
-			// if phase == reducePhase {
-			// 	taskArgs.File = ""
-			// }
-			ok := call(worker, "Worker.DoTask", &taskArgs, nil)
-			if ok {
-				// 这儿不用 goroutine 会让 reduces phase 丢失信息
-				go func () {
-					registerChan <- worker
-				}()
+			for {
+				worker := <- registerChan 
+				taskArgs := DoTaskArgs {
+					jobName,
+					mapFiles[taskNum],
+					phase,
+					taskNum,
+					n_other,
+				}
+				// 加上这句也没啥，可以看出，reduce 阶段文件名是没用的
+				// if phase == reducePhase {
+				// 	taskArgs.File = ""
+				// }
+				ok := call(worker, "Worker.DoTask", &taskArgs, nil)
+				if ok {
+					// 这儿不用 goroutine 会让 reduces phase 丢失信息
+					go func () {
+						registerChan <- worker
+					}()
+					break
+				}
 			}
 		}(i)
 	}
