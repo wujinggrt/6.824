@@ -1,5 +1,11 @@
 package mapreduce
 
+import (
+	"os"
+	"encoding/json"
+	"sort"
+)
+
 func doReduce(
 	jobName string, // the name of the whole MapReduce job
 	reduceTask int, // which reduce task this is
@@ -16,7 +22,7 @@ func doReduce(
 	// You'll need to read one intermediate file from each map task;
 	// reduceName(jobName, m, reduceTask) yields the file
 	// name from map task m.
-	//
+	// 
 	// Your doMap() encoded the key/value pairs in the intermediate
 	// files, so you will need to decode them. If you used JSON, you can
 	// read and decode by creating a decoder and repeatedly calling
@@ -44,6 +50,41 @@ func doReduce(
 	//
 	// Your code here (Part I).
 	//
-
 	
+	var data []KeyValue
+	// open file and read data
+	for i := 0; i < nMap; i++ {
+		name := reduceName(jobName, i, reduceTask)
+		file, _ := os.Open(name)
+		decoder := json.NewDecoder(file)
+		var item KeyValue
+		for {
+			err := decoder.Decode(&item)
+			if err != nil {
+				break
+			} else {
+				data = append(data, item)
+			}
+		}
+		file.Close()
+	}
+	// using slice to store the Value sets
+	keyValueSets := make(map[string][]string)
+	for _, kv := range data {
+		keyValueSets[kv.Key] = append(keyValueSets[kv.Key], kv.Value)
+	}
+	var keys []string
+	for k := range keyValueSets {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	file, err := os.Open(outFile)
+	if err != nil {
+		file, err = os.Create(outFile)
+	}
+	defer file.Close()
+	enc := json.NewEncoder(file)
+	for _, key := range keys {
+		enc.Encode(KeyValue{key, reduceF(key, keyValueSets[key])})
+	}
 }

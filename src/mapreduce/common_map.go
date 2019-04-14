@@ -60,36 +60,23 @@ func doMap(
 	contentsByte, _ := ioutil.ReadFile(inFile)
 	contents := string(contentsByte)
 	res := mapF(inFile, contents)
-	// res 拆分成 nReduce 部分
-	// segment := len(res) / nReduce
 	// 把结果分为 nReduce 个部分，ihash 分别放到其中
 	intermediates := make([]*os.File, nReduce)
+	encorders := make([]*json.Encoder, nReduce)
 	for i, _ := range intermediates {
 		name := reduceName(jobName, mapTask, i)
-		intermediates[i], _ = os.Create(name)
+		var err error
+		intermediates[i], err = os.Open(name)
+		if err != nil {
+			intermediates[i], err = os.Create(name)
+		}
+		encorders[i] = json.NewEncoder(intermediates[i])
 		defer intermediates[i].Close()
 	}
 	for _, kv := range res {
-		index := ihash(kv.Key)
-		encoder := json.NewEncoder(intermediates[index])
-		encoder.Encode(kv)
+		i := ihash(kv.Key) % nReduce
+		encorders[i].Encode(kv)
 	}
-	// for r := 0; r < nReduce; r++ {
-	// 	name := reduceName(jobName, mapTask, r)
-	// 	var contentPart []KeyValue
-	// 	// 每一对 kv 被 ; 分开
-	// 	if r == nReduce - 1 {
-	// 		contentPart = res[r * segment : ]
-	// 	} else {
-	// 		contentPart = res[r * segment :(r + 1) * segment]
-	// 	}
-	// 	file, _ := os.Create(name)
-
-	// 	enc := json.NewEncoder(file)
-	// 	for _, kv := range contentPart {
-	// 		enc.Encode(kv)
-	// 	}
-	// }
 }
 
 func ihash(s string) int {
